@@ -17,18 +17,29 @@
 #include<iostream>
 
 
-template<typename T>
+namespace cs540{
 class ptrdata{
     public:
-    T* ptr;
+    void* ptr;
     int refcount;
     // all constructors
     ptrdata():ptr(nullptr),refcount(0){};
-    ptrdata(T* obj) : ptr(obj), refcount(1){};
-    ptrdata(const T* obj) : ptr(const_cast<T*>(obj)), refcount(1){};
+    ptrdata(void* obj) : ptr(obj), refcount(1){};
+    ptrdata(const void* obj) : ptr(const_cast<void*>(obj)), refcount(1){};
     
+    void (*dest_ptr)(void*);
+    
+    ~ptrdata() {
+	dest_ptr = NULL;
+	ptr = NULL; 
+    }
 };
 
+
+template <typename U>
+    void destruct(void* dobj){
+	delete static_cast<U*>(dobj);
+    }
 
 template<typename T>
 class SharedPtr{
@@ -36,13 +47,13 @@ class SharedPtr{
 //    T* ptr;
 //    size_t refcount=NULL;
     public:
-       ptrdata<T> *data;
-       SharedPtr() : data(new ptrdata<T>()){}
+       ptrdata *data;
+       SharedPtr() : data(new ptrdata()){}
         // ctor on pointer to some object 
        template <typename U>
        explicit SharedPtr(U* u){
-            data = new ptrdata<T>(u);
-           
+            data = new ptrdata(u);
+            data->dest_ptr = destruct<U>;
        }
 //       template <typename U>
 //       SharedPtr(ptrdata* spdtr, U* obj) : data(spdtr){}
@@ -57,7 +68,7 @@ class SharedPtr{
 
 	template<typename U>
 	SharedPtr(const SharedPtr<U>& p){
-            data = const_cast<ptrdata<T>*>(p.data);
+            data = const_cast<ptrdata*>(p.data);
             if(data->ptr != nullptr) ++data->refcount;
 	}
 
@@ -65,15 +76,18 @@ class SharedPtr{
         // copy constructor for pointer to the shared object
         SharedPtr(SharedPtr&& p){
             //found a neat way to do it..haha
-            data = new ptrdata<T>(std::move(*p.data));
+            data = new ptrdata(std::move(*p.data));
             p.data = nullptr;
 	}
         
 	template <typename U>
 	SharedPtr(SharedPtr<U>&& p){
-            data = new ptrdata<T>(std::move(*p.data));
+            data = new ptrdata(std::move(*p.data));
             p.data = nullptr;
 	}
+        
+        template <typename U>
+	SharedPtr(ptrdata* p, U* o) : data(p){}
 
         SharedPtr& operator=(const SharedPtr& p){
             std::cout<<"in equality ctor\n";
@@ -126,28 +140,86 @@ class SharedPtr{
 	void reset(U* p){
             if(data->ptr != nullptr){
 		--data->refcount;
-		
+		if(data->refcount <= 0) {
+                    data->dest_ptr(data->ptr);
+                }
 		data->ptr = nullptr;
 		}
 		data->ptr = p;
 		data->refcount = 1;
-			
+		data->dest_ptr = destruct<U>;	
 	}
         
         
-        
-        ptrdata<T> *get_data(){
-            return this->data;
+        T *get(){
+            return static_cast<T*>(data->ptr);
         }
         
         int getrefrences(){
             return this->data->refcount;
         }
         
-        T& operator*()const{
-        
+        T& operator*() const{
+            return *static_cast<T*>(data->ptr);
         }
+	T* operator->() const{ 
+            return static_cast<T*>(data->ptr);
+        }
+        
+        explicit operator bool() const{
+            return data->ptr != nullptr;
+        }
+        
+        
 };
 //free standing finctions
+
+template <typename T1, typename T2>
+bool operator==(const SharedPtr<T1>& p1, const SharedPtr<T2>& p2){
+	return p1.data->ptr == p2.data->ptr;
+}
+	
+template <typename T1>
+bool operator==(const SharedPtr<T1>& p, std::nullptr_t np){
+	return p.data->ptr == np;
+}
+
+template <typename T1>
+bool operator==(std::nullptr_t np, const SharedPtr<T1>& p){
+	return p == np;
+}
+
+template <typename T1, typename T2>
+bool operator!=(const SharedPtr<T1>& p1, const SharedPtr<T2>& p2){
+	return !(p1 == p2);
+}
+
+template <typename T1>
+bool operator!=(const SharedPtr<T1>& p, std::nullptr_t np){
+	return !(p == np);
+}
+
+template <typename T1>
+bool operator!=(std::nullptr_t np, const SharedPtr<T1>& p){
+	return p != np;
+}
+
+template <typename T1, typename U>
+SharedPtr<T1> static_pointer_cast(const SharedPtr<U>& p){
+    T1* new_ptr = static_cast<T1*>(p.data->ptr);
+    return SharedPtr<T1>(p.data, new_ptr);
+}
+
+template <typename T1, typename U>
+SharedPtr<T1> dynamic_pointer_cast(const SharedPtr<U>& p){
+    auto new_ptr = dynamic_cast<T1*>(static_cast<U*>(p.data->ptr));
+    if(new_ptr){ 
+        return SharedPtr<T1>(p.data, new_ptr);
+    }
+    return SharedPtr<T1>();
+}
+
+
+}// end of namespace
 #endif /* SMARTPOINTER_HPP */
 
