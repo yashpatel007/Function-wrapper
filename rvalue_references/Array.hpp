@@ -27,7 +27,7 @@ class Array{
         Array(std::initializer_list<MyInt> list){
             
             // allocate the memory
-            length = list.size();
+            length = (list.size());
             
             data =(MyInt*)(malloc(sizeof(MyInt[length])));
             //copy the contents
@@ -51,18 +51,26 @@ class Array{
         //move assignment cunstructor
         Array(Array && arr){
             if(arr.data!=nullptr){
+                //delete data;
                 data=arr.data;
                 length=arr.length;
                 arr.data=nullptr;
             }
         }
-
-	~Array(){
-		delete[] data;
-	}
-
+        ~Array(){
+            delete data;
+        }
         //COPY ASSIGNMENT OPERATOR
         Array& operator=(const Array& arr){
+            
+            // Self-assignment detection
+            if (&arr == this){
+                return *this;
+            }
+ 
+            // Release any resource we're holding
+            delete data;
+            
             length=arr.length;
             data =(MyInt*)(malloc(sizeof(MyInt[length])));     
             //memcpy(data,arr.data,sizeof(MyInt[length]));
@@ -75,6 +83,10 @@ class Array{
         
         Array& operator=(Array&& arr){
             
+            if(&arr ==this){
+                return *this;
+            }
+            delete data;
             if(arr.data!=nullptr){
                 length=arr.length;
                 data=arr.data;
@@ -83,7 +95,7 @@ class Array{
             return *this;
         }
         friend std::ostream &operator<<(std::ostream &os, const Array &arr) {
-            //std::cout<<"length"<<arr.length<<"\n"; 
+           
             for (int i = 0; i < arr.length; ++i) { 
                 os << arr.data[i]; 
                 if (i != arr.length - 1){ 
