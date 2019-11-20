@@ -27,7 +27,7 @@ class Array{
         Array(std::initializer_list<MyInt> list){
             
             // allocate the memory
-            length = sizeof(list.size())-1;
+            length = list.size();
             
             data =(MyInt*)(malloc(sizeof(MyInt[length])));
             //copy the contents
@@ -49,13 +49,18 @@ class Array{
            
         }
         //move assignment cunstructor
-        Array(const Array && arr){
+        Array(Array && arr){
             if(arr.data!=nullptr){
                 data=arr.data;
                 length=arr.length;
-                //arr.data=nullptr;
+                arr.data=nullptr;
             }
         }
+
+	~Array(){
+		delete[] data;
+	}
+
         //COPY ASSIGNMENT OPERATOR
         Array& operator=(const Array& arr){
             length=arr.length;
@@ -68,16 +73,17 @@ class Array{
         
         }
         
-        Array& operator=(const Array&& arr){
+        Array& operator=(Array&& arr){
             
             if(arr.data!=nullptr){
                 length=arr.length;
                 data=arr.data;
+                arr.data=nullptr;
             }
             return *this;
         }
         friend std::ostream &operator<<(std::ostream &os, const Array &arr) {
-             
+            //std::cout<<"length"<<arr.length<<"\n"; 
             for (int i = 0; i < arr.length; ++i) { 
                 os << arr.data[i]; 
                 if (i != arr.length - 1){ 
