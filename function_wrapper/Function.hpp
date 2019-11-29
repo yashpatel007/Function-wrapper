@@ -79,13 +79,13 @@ class Function<ResultType(ArgumentTypes...)>{
     
     
     Function(){
-        std::cout<<"default constructor\n";
+        //std::cout<<"default constructor\n";
         callable_=nullptr;
     }
     
     template <typename FunctionType>
     Function(FunctionType ft){
-        std::cout<<"constructiong through ft\n";
+        //std::cout<<"constructiong through ft\n";
         callable_ = std::make_unique<CallableT<FunctionType>>(ft);
 	
 //        //cast the pointer to void(*) when storing
@@ -94,10 +94,10 @@ class Function<ResultType(ArgumentTypes...)>{
     }
     
     Function(const Function & fn){
-        std::cout<<"calling ctor * to fn";
+        //std::cout<<"calling ctor * to fn";
         if(callable_!=nullptr){
            // delete callable_;
-            std::cout<<"deleting callable\n";
+            //std::cout<<"deleting callable\n";
         }
         callable_=fn.callable_;
     }

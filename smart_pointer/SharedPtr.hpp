@@ -18,17 +18,18 @@
 
 
 namespace cs540{
+    
+    pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 class ptrdata{
     public:
     void* ptr;
     int refcount;
+    void (*dest_ptr)(void*);
     // all constructors
     ptrdata():ptr(nullptr),refcount(0){};
     ptrdata(void* obj) : ptr(obj), refcount(1){};
     ptrdata(const void* obj) : ptr(const_cast<void*>(obj)), refcount(1){};
-    
-    void (*dest_ptr)(void*);
-    
+        
     ~ptrdata() {
 	dest_ptr = NULL;
 	ptr = NULL; 
@@ -37,9 +38,10 @@ class ptrdata{
 
 
 template <typename U>
-    void destruct(void* dobj){
-	delete static_cast<U*>(dobj);
-    }
+void destruct(void* dobj){
+    //std::cout<<"destructor\n";
+    delete static_cast<U*>(dobj);
+}
 
 template<typename T>
 class SharedPtr{
@@ -52,45 +54,67 @@ class SharedPtr{
         // ctor on pointer to some object 
        template <typename U>
        explicit SharedPtr(U* u){
+           pthread_mutex_lock(&lock);
             data = new ptrdata(u);
+            //set dest_ptr fn pointer tp destruct
             data->dest_ptr = destruct<U>;
+            pthread_mutex_unlock(&lock);
        }
-//       template <typename U>
-//       SharedPtr(ptrdata* spdtr, U* obj) : data(spdtr){}
+      // template <typename U>
+      // SharedPtr(ptrdata* spdtr, U* obj) : data(spdtr){}
        
         //Single refrence init-------------------------------
         //copy constructor for refrence to shardptr
         SharedPtr(const SharedPtr& p){
+            pthread_mutex_lock(&lock);
+            
             
             data = p.data;
-            if(data->ptr != nullptr) ++data->refcount;
+            if(data->ptr != nullptr){ 
+                ++data->refcount;
+            }
+            pthread_mutex_unlock(&lock);
         }
 
 	template<typename U>
 	SharedPtr(const SharedPtr<U>& p){
+            pthread_mutex_lock(&lock);
             data = const_cast<ptrdata*>(p.data);
-            if(data->ptr != nullptr) ++data->refcount;
+            if(data->ptr != nullptr){
+                ++data->refcount;
+            }
+            pthread_mutex_unlock(&lock);
 	}
 
         //double refrence init-----------------------------------
         // copy constructor for pointer to the shared object
         SharedPtr(SharedPtr&& p){
             //found a neat way to do it..haha
+            pthread_mutex_lock(&lock);
             data = new ptrdata(std::move(*p.data));
             p.data = nullptr;
+            pthread_mutex_unlock(&lock);
 	}
         
 	template <typename U>
 	SharedPtr(SharedPtr<U>&& p){
+            pthread_mutex_lock(&lock);
             data = new ptrdata(std::move(*p.data));
             p.data = nullptr;
+            pthread_mutex_unlock(&lock);
 	}
         
-        template <typename U>
+    template <typename U>
 	SharedPtr(ptrdata* p, U* o) : data(p){}
 
         SharedPtr& operator=(const SharedPtr& p){
-            std::cout<<"in equality ctor\n";
+            //std::cout<<"in equality ctor\n";
+            pthread_mutex_lock(&lock);
+            //check self assignment
+            // if(p==this){
+            //     return *this;
+            // }
+
             if(data->ptr != nullptr){ 
                 --data->refcount;
             }
@@ -98,56 +122,88 @@ class SharedPtr{
             if(data->ptr != nullptr){ 
                 ++data->refcount;
             }
+            pthread_mutex_unlock(&lock);
             return *this;
 	}
 
 	template <typename U>
 	SharedPtr<T>& operator=(const SharedPtr<U>& p){
+            pthread_mutex_lock(&lock);
+            
+            // if(p==this){
+            //     return *this;
+            // }
+            
+            //delete data->ptr;
             if(data->ptr != nullptr){ 
                 --data->refcount;
             }
+            //data->dest_ptr(data->ptr);
             data = p.data;
             if(data->ptr != nullptr){
                 ++data->refcount;
             }
+            pthread_mutex_unlock(&lock);
             return *this;
         }
         
         SharedPtr& operator=(SharedPtr&& p){
-				
+            pthread_mutex_lock(&lock);
             data = std::move(p.data);
             p.data->ptr = nullptr;
             p.data->refcount = 0;
+            pthread_mutex_unlock(&lock);
             return *this;
 	}
 
 	template <typename U>
 	SharedPtr<T>& operator=(SharedPtr<U>&& p){
-				
+            pthread_mutex_lock(&lock);
+            //data->dest_ptr(data->ptr);
             data = std::move(p.data);
             p.data->ptr = nullptr;
             p.data->refcount = 0;
+            pthread_mutex_unlock(&lock);
             return *this;
 	}
         
-        void reset(){
-            if(data->ptr != nullptr)
-		--data->refcount;
-		data->ptr = nullptr;
+        ~SharedPtr(){
+            pthread_mutex_lock(&lock);
+            if(data->ptr != nullptr && data->refcount != 0){
+                //std::cout<<"here\n";
+                    --data->refcount;
+                    if(data->refcount <= 0){
+                        //std::cout<<"deleting\n";
+                        data->dest_ptr(data->ptr);
+                    }
+                    data->ptr = nullptr;
+            }
+            pthread_mutex_unlock(&lock);
 	}
+        
+    void reset(){
+        pthread_mutex_lock(&lock);
+        if(data->ptr != nullptr){
+		--data->refcount;
+        }
+        data->ptr = nullptr;
+        pthread_mutex_unlock(&lock);
+	    }
 
 	template <typename U>
 	void reset(U* p){
+            pthread_mutex_lock(&lock);
             if(data->ptr != nullptr){
 		--data->refcount;
 		if(data->refcount <= 0) {
-                    data->dest_ptr(data->ptr);
-                }
+            data->dest_ptr(data->ptr);
+        }
 		data->ptr = nullptr;
 		}
 		data->ptr = p;
 		data->refcount = 1;
-		data->dest_ptr = destruct<U>;	
+		data->dest_ptr = destruct<U>;
+        pthread_mutex_unlock(&lock);
 	}
         
         
@@ -169,6 +225,8 @@ class SharedPtr{
         explicit operator bool() const{
             return data->ptr != nullptr;
         }
+        
+        
         
         
 };
@@ -220,6 +278,6 @@ SharedPtr<T1> dynamic_pointer_cast(const SharedPtr<U>& p){
 }
 
 
-}// end of namespace
+}
 #endif /* SMARTPOINTER_HPP */
 

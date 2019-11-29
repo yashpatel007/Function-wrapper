@@ -47,5 +47,5 @@ int main() {
     assert(MyInt::count - before == 0);
     std::cout << "    " << a5 << std::endl;
 
-    cs540::Array::move_performance_test();
+    //cs540::Array::move_performance_test();
 }

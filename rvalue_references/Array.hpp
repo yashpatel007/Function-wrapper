@@ -17,19 +17,19 @@
 #include <iostream>
 #include <stdlib.h>
 #include <cstring>
-
+namespace cs540{
 class Array{
 
     public:
         MyInt* data;
-        size_t length;
+        int length;
         //std:: init list ctor
         Array(std::initializer_list<MyInt> list){
             
             // allocate the memory
             length = (list.size());
             
-            data =(MyInt*)(malloc(sizeof(MyInt[length])));
+            data =(MyInt*)(malloc(sizeof(MyInt)*length));
             //copy the contents
             int k=0;
             for(auto i=list.begin(); i!=list.end(); i++){
@@ -41,7 +41,7 @@ class Array{
         // copy constructor
         Array(const Array& arr){
             length=arr.length;
-            data =(MyInt*)(malloc(sizeof(MyInt[length])));     
+            data =(MyInt*)(malloc(sizeof(MyInt)*length));     
             //memcpy(data,arr.data,sizeof(MyInt[length]));
             for(int i=0; i<length;i++){
                 data[i]=(MyInt)arr.data[i];
@@ -58,7 +58,8 @@ class Array{
             }
         }
         ~Array(){
-            delete data;
+            
+            delete[] data;
         }
         //COPY ASSIGNMENT OPERATOR
         Array& operator=(const Array& arr){
@@ -72,7 +73,7 @@ class Array{
             delete data;
             
             length=arr.length;
-            data =(MyInt*)(malloc(sizeof(MyInt[length])));     
+            data =(MyInt*)(malloc(sizeof(MyInt)*length));     
             //memcpy(data,arr.data,sizeof(MyInt[length]));
             for(int i=0; i<length;i++){
                 data[i]=(MyInt)arr.data[i];
@@ -108,4 +109,6 @@ class Array{
         
         
 };
+
+}// namespace ends here
 #endif /* ARRAY_HPP */
