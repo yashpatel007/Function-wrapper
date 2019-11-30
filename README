@@ -1,1 +1,25 @@
 
+Project Implementation status:
+  First part SharedPtr is working but there are memory leaks.
+  second part is complete with no leaks.
+  third part is also complete with no leaks.
+  
+Compiling:
+
+      In order to compile the first part 
+      1. Navigante to SharedPtr directory 
+      2. type in terminal make
+      3. type ./SharedPtr
+      it should compile the code
+      
+      In order to compile the second part 
+      1. Navigante to rvalue_references directory 
+      2. type in terminal make
+      3. type ./Array_test
+      it should compile the code
+      
+      In order to compile the third part 
+      1. Navigante to function_wrapper directory 
+      2. type in terminal make
+      3. type ./Function_test
+      it should compile the code
