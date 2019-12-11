@@ -1,0 +1,6 @@
+60
+
+For memory leak,
+
+If there is memory leak for one thread, it is easy to find the leak.
+But if everything is ok for one thread, but not ok for multi-threads. It is much more complicated. 
